@@ -1,0 +1,82 @@
+# Локальный запуск: docker compose up --build  →  http://localhost:8080/?stop=1284
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: pz
+      POSTGRES_PASSWORD: pz
+      POSTGRES_DB: pokazhdu
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pz -d pokazhdu"]
+      interval: 3s
+      retries: 20
+
+  # Локальное S3-совместимое хранилище (SeaweedFS). В проде — любой S3: AWS, Yandex Object Storage, MinIO.
+  s3:
+    image: chrislusf/seaweedfs:3.80
+    command: ["server", "-dir=/data", "-s3", "-s3.port=8333", "-s3.config=/etc/seaweedfs/s3.json"]
+    ports: ["9000:8333"]
+    volumes:
+      - s3data:/data
+      - ./deploy/seaweedfs-s3.json:/etc/seaweedfs/s3.json:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:9333/cluster/status && nc -z 127.0.0.1 8333"]
+      interval: 3s
+      retries: 30
+
+  backend:
+    build: ./backend
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DATABASE_URL: postgresql://pz:pz@db:5432/pokazhdu
+      STORAGE_BACKEND: s3
+      S3_ENDPOINT: http://s3:8333
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-pokazhdu}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-pokazhdu-local-secret}
+      S3_PUBLIC_ENDPOINT: ${S3_PUBLIC_ENDPOINT:-http://localhost:9000}
+      TRUST_PROXY: "1"
+      CORS_ORIGINS: http://localhost:8080
+    depends_on:
+      db: { condition: service_healthy }
+      s3: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 5s
+      retries: 20
+
+  # Одноразовый сервис: схема + демо-остановки + демо-клипы + золотые примеры.
+  seed:
+    build: ./backend
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DATABASE_URL: postgresql://pz:pz@db:5432/pokazhdu
+      STORAGE_BACKEND: s3
+      S3_ENDPOINT: http://s3:8333
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-pokazhdu}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-pokazhdu-local-secret}
+    command: ["python", "-m", "app.cli", "seed", "--demo-answers"]
+    depends_on:
+      db: { condition: service_healthy }
+      s3: { condition: service_healthy }
+    restart: on-failure
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_CONTACT_EMAIL: ${CONTACT_EMAIL:-hello@pokazhdu.example}
+    environment:
+      MEDIA_ORIGIN: ${S3_PUBLIC_ENDPOINT:-http://localhost:9000}
+      API_UPSTREAM: backend:8000
+    ports: ["8080:80"]
+    depends_on:
+      backend: { condition: service_healthy }
+
+volumes:
+  pgdata:
+  s3data:

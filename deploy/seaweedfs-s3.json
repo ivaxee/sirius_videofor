@@ -1,0 +1,9 @@
+{
+  "identities": [
+    {
+      "name": "pokazhdu",
+      "credentials": [{ "accessKey": "pokazhdu", "secretKey": "pokazhdu-local-secret" }],
+      "actions": ["Admin", "Read", "Write", "List", "Tagging"]
+    }
+  ]
+}

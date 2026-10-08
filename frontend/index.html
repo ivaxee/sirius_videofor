@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Пока жду</title>
+    <meta name="description" content="Помоги научить ИИ замечать вредные привычки на улице — 3 коротких клипа, пока ждёшь автобус." />
+    <meta name="theme-color" content="#f2f2f3" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#121416" media="(prefers-color-scheme: dark)" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Пока жду" />
+    <meta name="referrer" content="no-referrer" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <style>
+      /* Критичный CSS: фон и цвет до загрузки основного стиля, без белой вспышки в тёмной теме */
+      html, body { margin: 0; background: #f2f2f3; color: #1d1f20; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+      @media (prefers-color-scheme: dark) { html, body { background: #121416; color: #e6e8ea; } }
+      #root:empty::before { content: "Пока жду"; display: block; padding: 32px 20px; font: 600 18px system-ui, sans-serif; opacity: .6; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <noscript>Для работы нужен JavaScript.</noscript>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
